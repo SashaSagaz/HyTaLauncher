@@ -55,7 +55,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: HyTaLauncher_Portable_*.zip
-        draft: false
+        draft: true
         prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

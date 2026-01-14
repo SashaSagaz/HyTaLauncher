@@ -17,6 +17,11 @@
 
 ---
 
+[![VirusTotal Portable](https://img.shields.io/badge/VirusTotal-Portable-orange?style=flat-square&logo=virustotal)](https://www.virustotal.com/gui/file/15f25c31c79eec3e6a74c34e93aa7103016b270a0d3746c38c6d58c76197adf3?nocache=1)
+[![VirusTotal Installer](https://img.shields.io/badge/VirusTotal-Installer-orange?style=flat-square&logo=virustotal)](https://www.virustotal.com/gui/file/2affa43986ed6778f27bfcf8b9b9b5823c739a5e094f1b109ed60ca57244b497?nocache=1)
+
+---
+
 ## Features / Возможности
 
 - Auto-download and install game files
@@ -140,3 +145,4 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) before contributing.
 
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+

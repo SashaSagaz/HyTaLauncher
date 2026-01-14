@@ -1,4 +1,8 @@
-# HyTaLauncher - Лаунчер для Hytale
+# HyTaLauncher - Лаунчер для Hytale | Hytale Launcher
+
+<p align="center">For Free Play</p>
+
+<p align="center">С Поддержкой Модов | With Mods Manager</p>
 
 <p align="center">
   <img src="HyTaLauncher/Resources/icon.ico" alt="HyTaLauncher" width="128"/>
@@ -145,5 +149,6 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) before contributing.
 
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
 
 

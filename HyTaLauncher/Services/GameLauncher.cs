@@ -687,6 +687,10 @@ namespace HyTaLauncher.Services
             var gameDir = Path.Combine(_gameDir, version.Branch, "package", "game", "latest");
             var clientPath = Path.Combine(gameDir, "Client", "HytaleClient.exe");
             var javaExe = GetJavaPath();
+            
+            // Общая папка UserData рядом с install (сохранения, моды и т.д.)
+            var userDataDir = Path.Combine(Path.GetDirectoryName(_gameDir)!, "UserData");
+            Directory.CreateDirectory(userDataDir);
 
             if (!File.Exists(clientPath))
                 throw new FileNotFoundException("Game client not found");
@@ -698,7 +702,7 @@ namespace HyTaLauncher.Services
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = clientPath,
-                    Arguments = $"--app-dir \"{gameDir}\" --java-exec \"{javaExe}\" --auth-mode offline --uuid {uuid} --name {playerName}",
+                    Arguments = $"--app-dir \"{gameDir}\" --java-exec \"{javaExe}\" --user-dir \"{userDataDir}\" --auth-mode offline --uuid {uuid} --name {playerName}",
                     UseShellExecute = false,
                     WorkingDirectory = Path.GetDirectoryName(clientPath)
                 }

@@ -39,13 +39,12 @@ namespace HyTaLauncher.Services
                 LogService.LogMods("No API key provided");
             }
             
-            // Путь модов зависит от пути игры
+            // Общая папка UserData рядом с install
             var baseDir = string.IsNullOrEmpty(gameDirectory)
                 ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Hytale")
                 : gameDirectory;
                 
-            _modsFolder = Path.Combine(baseDir, "install", "release", "package", "game", "latest", 
-                "Client", "UserData", "Mods");
+            _modsFolder = Path.Combine(baseDir, "UserData", "Mods");
             
             LogService.LogMods($"Mods folder: {_modsFolder}");
         }

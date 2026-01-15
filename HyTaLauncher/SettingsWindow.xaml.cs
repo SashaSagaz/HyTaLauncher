@@ -49,6 +49,7 @@ namespace HyTaLauncher
             RussifierBtnText.Text = _localization.Get("settings.install_russifier");
             OnlineFixLabel.Text = _localization.Get("settings.onlinefix");
             OnlineFixBtnText.Text = _localization.Get("settings.install_onlinefix");
+            OnlineFixWarningText.Text = _localization.Get("settings.onlinefix_warning");
         }
 
         private void CheckGameInstalled()
@@ -65,6 +66,22 @@ namespace HyTaLauncher
             OnlineFixStatusText.Text = isInstalled 
                 ? "" 
                 : _localization.Get("settings.onlinefix_no_game");
+            
+            // Проверяем наличие бэкапов
+            CheckBackupsAvailable();
+        }
+
+        private void CheckBackupsAvailable()
+        {
+            var backupDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "HyTaLauncher", "backups"
+            );
+            
+            RussifierRestoreBtn.Visibility = Directory.Exists(Path.Combine(backupDir, "russifier")) 
+                ? Visibility.Visible : Visibility.Collapsed;
+            OnlineFixRestoreBtn.Visibility = Directory.Exists(Path.Combine(backupDir, "onlinefix")) 
+                ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private string GetGameDirectory()
@@ -77,18 +94,55 @@ namespace HyTaLauncher
 
         private bool IsGameInstalled(string gameDir)
         {
-            var installDir = Path.Combine(gameDir, "install", "release", "package", "game");
-            if (!Directory.Exists(installDir))
+            var installBase = Path.Combine(gameDir, "install");
+            if (!Directory.Exists(installBase))
                 return false;
 
-            // Проверяем есть ли хотя бы одна версия с HytaleClient.exe
-            foreach (var dir in Directory.GetDirectories(installDir))
+            // Проверяем все ветки: release, pre-release, beta, alpha
+            var branches = new[] { "release", "pre-release", "beta", "alpha" };
+            foreach (var branch in branches)
             {
-                var clientPath = Path.Combine(dir, "Client", "HytaleClient.exe");
-                if (File.Exists(clientPath))
-                    return true;
+                var branchDir = Path.Combine(installBase, branch, "package", "game");
+                if (!Directory.Exists(branchDir))
+                    continue;
+
+                // Проверяем есть ли хотя бы одна версия с HytaleClient.exe
+                foreach (var dir in Directory.GetDirectories(branchDir))
+                {
+                    var clientPath = Path.Combine(dir, "Client", "HytaleClient.exe");
+                    if (File.Exists(clientPath))
+                        return true;
+                }
             }
             return false;
+        }
+
+        /// <summary>
+        /// Получает все папки версий игры из всех веток
+        /// </summary>
+        private List<string> GetAllGameVersionDirs(string gameDir)
+        {
+            var versionDirs = new List<string>();
+            var installBase = Path.Combine(gameDir, "install");
+            
+            if (!Directory.Exists(installBase))
+                return versionDirs;
+
+            var branches = new[] { "release", "pre-release", "beta", "alpha" };
+            foreach (var branch in branches)
+            {
+                var branchDir = Path.Combine(installBase, branch, "package", "game");
+                if (!Directory.Exists(branchDir))
+                    continue;
+
+                foreach (var dir in Directory.GetDirectories(branchDir))
+                {
+                    var clientPath = Path.Combine(dir, "Client", "HytaleClient.exe");
+                    if (File.Exists(clientPath))
+                        versionDirs.Add(dir);
+                }
+            }
+            return versionDirs;
         }
 
         private void LoadSettings()
@@ -174,10 +228,20 @@ namespace HyTaLauncher
             try
             {
                 var gameDir = GetGameDirectory();
-                var installDir = Path.Combine(gameDir, "install", "release", "package", "game");
+                var versionDirs = GetAllGameVersionDirs(gameDir);
+                
+                if (versionDirs.Count == 0)
+                {
+                    throw new Exception("No game versions found");
+                }
+                
                 var cacheDir = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                     "HyTaLauncher", "cache"
+                );
+                var backupDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "HyTaLauncher", "backups", "russifier"
                 );
                 Directory.CreateDirectory(cacheDir);
 
@@ -186,7 +250,7 @@ namespace HyTaLauncher
 
                 // Скачиваем архив
                 using var httpClient = new HttpClient();
-                httpClient.Timeout = TimeSpan.FromMinutes(5); // Увеличиваем таймаут
+                httpClient.Timeout = TimeSpan.FromMinutes(10);
                 httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 YaBrowser/25.12.0.0 Safari/537.36");
                 
                 var response = await httpClient.GetAsync(RussifierUrl);
@@ -205,11 +269,10 @@ namespace HyTaLauncher
                 
                 ZipFile.ExtractToDirectory(zipPath, extractPath);
 
-                // Копируем Client в каждую версию игры
+                // Находим папку Client в архиве
                 var clientSourceDir = Path.Combine(extractPath, "Client");
                 if (!Directory.Exists(clientSourceDir))
                 {
-                    // Может быть вложенная папка
                     var dirs = Directory.GetDirectories(extractPath);
                     if (dirs.Length > 0)
                     {
@@ -222,12 +285,23 @@ namespace HyTaLauncher
                     throw new Exception("Client folder not found in archive");
                 }
 
+                // Получаем список файлов для бэкапа
+                var filesToBackup = GetFilesRecursive(clientSourceDir)
+                    .Select(f => f.Substring(clientSourceDir.Length + 1))
+                    .ToList();
+
                 int installedCount = 0;
-                foreach (var versionDir in Directory.GetDirectories(installDir))
+                foreach (var versionDir in versionDirs)
                 {
                     var clientDestDir = Path.Combine(versionDir, "Client");
                     if (Directory.Exists(clientDestDir))
                     {
+                        // Делаем бэкап только первой версии (файлы одинаковые)
+                        if (installedCount == 0)
+                        {
+                            BackupFiles(clientDestDir, backupDir, filesToBackup);
+                        }
+                        
                         CopyDirectory(clientSourceDir, clientDestDir);
                         installedCount++;
                     }
@@ -242,6 +316,8 @@ namespace HyTaLauncher
                 RussifierStatusText.Text = string.Format(_localization.Get("settings.russifier_done"), installedCount);
                 RussifierStatusText.Foreground = new System.Windows.Media.SolidColorBrush(
                     System.Windows.Media.Color.FromRgb(0x2e, 0xa0, 0x43));
+                
+                CheckBackupsAvailable();
             }
             catch (Exception ex)
             {
@@ -252,6 +328,38 @@ namespace HyTaLauncher
             finally
             {
                 RussifierBtn.IsEnabled = true;
+            }
+        }
+
+        private List<string> GetFilesRecursive(string dir)
+        {
+            var files = new List<string>();
+            files.AddRange(Directory.GetFiles(dir));
+            foreach (var subDir in Directory.GetDirectories(dir))
+            {
+                files.AddRange(GetFilesRecursive(subDir));
+            }
+            return files;
+        }
+
+        private void BackupFiles(string sourceDir, string backupDir, List<string> relativePaths)
+        {
+            // Очищаем старый бэкап
+            if (Directory.Exists(backupDir))
+                Directory.Delete(backupDir, true);
+            
+            Directory.CreateDirectory(backupDir);
+            
+            foreach (var relativePath in relativePaths)
+            {
+                var sourceFile = Path.Combine(sourceDir, relativePath);
+                var backupFile = Path.Combine(backupDir, relativePath);
+                
+                if (File.Exists(sourceFile))
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(backupFile)!);
+                    File.Copy(sourceFile, backupFile, true);
+                }
             }
         }
 
@@ -281,10 +389,20 @@ namespace HyTaLauncher
             try
             {
                 var gameDir = GetGameDirectory();
-                var installDir = Path.Combine(gameDir, "install", "release", "package", "game");
+                var versionDirs = GetAllGameVersionDirs(gameDir);
+                
+                if (versionDirs.Count == 0)
+                {
+                    throw new Exception("No game versions found");
+                }
+                
                 var cacheDir = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                     "HyTaLauncher", "cache"
+                );
+                var backupDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "HyTaLauncher", "backups", "onlinefix"
                 );
                 Directory.CreateDirectory(cacheDir);
 
@@ -293,7 +411,7 @@ namespace HyTaLauncher
 
                 // Скачиваем архив
                 using var httpClient = new HttpClient();
-                httpClient.Timeout = TimeSpan.FromMinutes(5); // Увеличиваем таймаут
+                httpClient.Timeout = TimeSpan.FromMinutes(10);
                 httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 YaBrowser/25.12.0.0 Safari/537.36");
                 
                 var response = await httpClient.GetAsync(OnlineFixUrl);
@@ -312,11 +430,21 @@ namespace HyTaLauncher
                 
                 ZipFile.ExtractToDirectory(zipPath, extractPath);
 
+                // Получаем список файлов для бэкапа
+                var filesToBackup = GetFilesRecursive(extractPath)
+                    .Select(f => f.Substring(extractPath.Length + 1))
+                    .ToList();
+
                 // Копируем содержимое в каждую версию игры
                 int installedCount = 0;
-                foreach (var versionDir in Directory.GetDirectories(installDir))
+                foreach (var versionDir in versionDirs)
                 {
-                    // Копируем всё содержимое архива в папку версии
+                    // Делаем бэкап только первой версии
+                    if (installedCount == 0)
+                    {
+                        BackupFiles(versionDir, backupDir, filesToBackup);
+                    }
+                    
                     CopyDirectory(extractPath, versionDir);
                     installedCount++;
                 }
@@ -330,6 +458,8 @@ namespace HyTaLauncher
                 OnlineFixStatusText.Text = string.Format(_localization.Get("settings.onlinefix_done"), installedCount);
                 OnlineFixStatusText.Foreground = new System.Windows.Media.SolidColorBrush(
                     System.Windows.Media.Color.FromRgb(0x2e, 0xa0, 0x43));
+                
+                CheckBackupsAvailable();
             }
             catch (Exception ex)
             {
@@ -340,6 +470,67 @@ namespace HyTaLauncher
             finally
             {
                 OnlineFixBtn.IsEnabled = true;
+            }
+        }
+
+        private void RussifierRestoreButton_Click(object sender, RoutedEventArgs e)
+        {
+            RestoreBackup("russifier", RussifierStatusText);
+        }
+
+        private void OnlineFixRestoreButton_Click(object sender, RoutedEventArgs e)
+        {
+            RestoreBackup("onlinefix", OnlineFixStatusText);
+        }
+
+        private void RestoreBackup(string backupName, System.Windows.Controls.TextBlock statusText)
+        {
+            try
+            {
+                var gameDir = GetGameDirectory();
+                var versionDirs = GetAllGameVersionDirs(gameDir);
+                var backupDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "HyTaLauncher", "backups", backupName
+                );
+
+                if (!Directory.Exists(backupDir))
+                {
+                    statusText.Text = "No backup found";
+                    return;
+                }
+
+                var result = MessageBox.Show(
+                    _localization.Get("settings.restore_confirm"),
+                    _localization.Get("settings.restore_title"),
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question
+                );
+
+                if (result != MessageBoxResult.Yes)
+                    return;
+
+                int restoredCount = 0;
+                foreach (var versionDir in versionDirs)
+                {
+                    CopyDirectory(backupDir, versionDir);
+                    restoredCount++;
+                }
+
+                // Удаляем бэкап после восстановления
+                Directory.Delete(backupDir, true);
+                
+                statusText.Text = string.Format(_localization.Get("settings.restore_done"), restoredCount);
+                statusText.Foreground = new System.Windows.Media.SolidColorBrush(
+                    System.Windows.Media.Color.FromRgb(0x2e, 0xa0, 0x43));
+                
+                CheckBackupsAvailable();
+            }
+            catch (Exception ex)
+            {
+                statusText.Text = $"Error: {ex.Message}";
+                statusText.Foreground = new System.Windows.Media.SolidColorBrush(
+                    System.Windows.Media.Color.FromRgb(0xcc, 0x33, 0x33));
             }
         }
     }

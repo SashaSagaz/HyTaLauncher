@@ -78,7 +78,7 @@
                             Margin="0,0,0,15">
                         <StackPanel>
                             <TextBlock x:Name="InfoText"
-                                       Text="HyTaLauncher v1.0.3"
+                                       Text="HyTaLauncher v1.0.4"
                                        FontSize="11"
                                        Foreground="{StaticResource TextBrush}"/>
                             <TextBlock x:Name="InfoDescText"
@@ -121,18 +121,30 @@
                                FontWeight="Bold"
                                Foreground="{StaticResource TextSecondaryBrush}"
                                Margin="0,0,0,6"/>
-                    <Button x:Name="RussifierBtn"
-                            Style="{StaticResource ModernButton}"
-                            Background="{StaticResource CardBackgroundBrush}"
-                            Padding="12,8"
-                            FontSize="11"
-                            HorizontalAlignment="Left"
-                            Click="RussifierButton_Click">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="🇷🇺" Margin="0,0,6,0"/>
-                            <TextBlock x:Name="RussifierBtnText" Text="Install Russifier"/>
-                        </StackPanel>
-                    </Button>
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="RussifierBtn"
+                                Style="{StaticResource ModernButton}"
+                                Background="{StaticResource CardBackgroundBrush}"
+                                Padding="12,8"
+                                FontSize="11"
+                                Click="RussifierButton_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🇷🇺" Margin="0,0,6,0"/>
+                                <TextBlock x:Name="RussifierBtnText" Text="Install Russifier"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="RussifierRestoreBtn"
+                                Style="{StaticResource ModernButton}"
+                                Background="#3d2020"
+                                Padding="8,8"
+                                FontSize="11"
+                                Margin="8,0,0,0"
+                                Click="RussifierRestoreButton_Click"
+                                ToolTip="Restore backup"
+                                Visibility="Collapsed">
+                            <TextBlock Text="↩"/>
+                        </Button>
+                    </StackPanel>
                     <TextBlock x:Name="RussifierStatusText"
                                Text=""
                                FontSize="9"
@@ -146,18 +158,36 @@
                                FontWeight="Bold"
                                Foreground="{StaticResource TextSecondaryBrush}"
                                Margin="0,0,0,6"/>
-                    <Button x:Name="OnlineFixBtn"
-                            Style="{StaticResource ModernButton}"
-                            Background="{StaticResource CardBackgroundBrush}"
-                            Padding="12,8"
-                            FontSize="11"
-                            HorizontalAlignment="Left"
-                            Click="OnlineFixButton_Click">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="🌐" Margin="0,0,6,0"/>
-                            <TextBlock x:Name="OnlineFixBtnText" Text="Install Online Fix"/>
-                        </StackPanel>
-                    </Button>
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="OnlineFixBtn"
+                                Style="{StaticResource ModernButton}"
+                                Background="{StaticResource CardBackgroundBrush}"
+                                Padding="12,8"
+                                FontSize="11"
+                                Click="OnlineFixButton_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🌐" Margin="0,0,6,0"/>
+                                <TextBlock x:Name="OnlineFixBtnText" Text="Install Online Fix"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="OnlineFixRestoreBtn"
+                                Style="{StaticResource ModernButton}"
+                                Background="#3d2020"
+                                Padding="8,8"
+                                FontSize="11"
+                                Margin="8,0,0,0"
+                                Click="OnlineFixRestoreButton_Click"
+                                ToolTip="Restore backup"
+                                Visibility="Collapsed">
+                            <TextBlock Text="↩"/>
+                        </Button>
+                    </StackPanel>
+                    <TextBlock x:Name="OnlineFixWarningText"
+                               Text="May break some UI elements (missing textures)"
+                               FontSize="9"
+                               Foreground="#ff9800"
+                               TextWrapping="Wrap"
+                               Margin="0,4,0,0"/>
                     <TextBlock x:Name="OnlineFixStatusText"
                                Text=""
                                FontSize="9"

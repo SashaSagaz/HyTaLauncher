@@ -39,6 +39,9 @@ namespace HyTaLauncher
             _localization.LanguageChanged += UpdateUI;
             
             LoadSettings();
+            
+            // Миграция данных из старых папок UserData в новую общую папку (v1.0.4)
+            _gameLauncher.MigrateUserData();
             InitializeLanguages();
             UpdateUI();
             

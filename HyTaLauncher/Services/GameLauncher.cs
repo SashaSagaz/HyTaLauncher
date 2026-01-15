@@ -745,6 +745,86 @@ namespace HyTaLauncher.Services
             return uuid;
         }
 
+        /// <summary>
+        /// Мигрирует данные из старых папок UserData в новую общую папку
+        /// Старый путь: Hytale\install\{branch}\package\game\{version}\Client\UserData
+        /// Новый путь: Hytale\UserData
+        /// </summary>
+        public void MigrateUserData()
+        {
+            try
+            {
+                var hytaleDir = Path.GetDirectoryName(_gameDir); // %AppData%\Hytale
+                if (string.IsNullOrEmpty(hytaleDir)) return;
+                
+                var newUserDataDir = Path.Combine(hytaleDir, "UserData");
+                var migrationMarker = Path.Combine(newUserDataDir, ".migrated");
+                
+                // Если уже мигрировали - пропускаем
+                if (File.Exists(migrationMarker)) return;
+                
+                var oldUserDataDirs = new List<string>();
+                
+                // Ищем старые папки UserData во всех ветках и версиях
+                foreach (var branch in AvailableBranches)
+                {
+                    var branchDir = Path.Combine(_gameDir, branch, "package", "game");
+                    if (!Directory.Exists(branchDir)) continue;
+                    
+                    // Проверяем все версии (latest, 1, 2, 3...)
+                    foreach (var versionDir in Directory.GetDirectories(branchDir))
+                    {
+                        var oldUserData = Path.Combine(versionDir, "Client", "UserData");
+                        if (Directory.Exists(oldUserData))
+                        {
+                            oldUserDataDirs.Add(oldUserData);
+                        }
+                    }
+                }
+                
+                if (oldUserDataDirs.Count == 0) return;
+                
+                // Создаём новую папку
+                Directory.CreateDirectory(newUserDataDir);
+                
+                // Копируем данные из всех найденных папок (более новые перезаписывают старые)
+                foreach (var oldDir in oldUserDataDirs)
+                {
+                    CopyDirectoryContents(oldDir, newUserDataDir);
+                }
+                
+                // Создаём маркер миграции
+                File.WriteAllText(migrationMarker, $"Migrated on {DateTime.Now}\nFrom: {string.Join("\n", oldUserDataDirs)}");
+            }
+            catch
+            {
+                // Игнорируем ошибки миграции - не критично
+            }
+        }
+        
+        private void CopyDirectoryContents(string sourceDir, string destDir)
+        {
+            Directory.CreateDirectory(destDir);
+            
+            // Копируем файлы
+            foreach (var file in Directory.GetFiles(sourceDir))
+            {
+                var destFile = Path.Combine(destDir, Path.GetFileName(file));
+                // Копируем только если файл новее или не существует
+                if (!File.Exists(destFile) || File.GetLastWriteTime(file) > File.GetLastWriteTime(destFile))
+                {
+                    File.Copy(file, destFile, true);
+                }
+            }
+            
+            // Рекурсивно копируем подпапки
+            foreach (var dir in Directory.GetDirectories(sourceDir))
+            {
+                var destSubDir = Path.Combine(destDir, Path.GetFileName(dir));
+                CopyDirectoryContents(dir, destSubDir);
+            }
+        }
+
         private string GetJavaPath()
         {
             var javaExe = Path.Combine(_gameDir, "release", "package", "jre", "latest", "bin", "java.exe");

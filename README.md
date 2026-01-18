@@ -20,9 +20,9 @@
   <a href="https://discord.gg/Hwtew6UfQw"><img alt="Static Badge" src="https://img.shields.io/badge/Discord-Link-blue?style=flat-square&logo=discord"></a>
 </p>
 
-<p align="center">
-  <a href="README-EN.md">English</a>
-</p>
+<h2 align="center">
+  <a href="README-EN.md">ENGLISH README</a>
+</h2>
 
 ---
 
@@ -208,4 +208,5 @@ HyTaLauncher включает интеграцию с CurseForge для упра
    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=MerryJoyKey-Studio/HyTaLauncher&type=date&legend=top-left" />
  </picture>
 </a>
+
 
